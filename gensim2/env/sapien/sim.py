@@ -76,6 +76,7 @@ class SapienSim(object):
         self.init_state: Optional[Dict] = None
         self.robot: Optional[sapien.Articulation] = None
         self.robot_name = ""
+        self._web_visualizer_bound = False
 
         self.use_visual_obs = use_visual_obs
         self.headless = headless
@@ -114,8 +115,10 @@ class SapienSim(object):
                 self.sim = bind_visualizer_to_sapien_scene(
                     self.sim, self.engine, self.renderer
                 )
+                self._web_visualizer_bound = True
             except Exception as e:
                 print("Bind web visualizer error!", e)
+                self._web_visualizer_bound = False
 
         # If headless is enabled, setup scene lighting for rendering
         if (not self.headless) and (self.cam_type != "real"):
@@ -261,15 +264,19 @@ class SapienSim(object):
 
     def create_viewer(self):
         viewer = Viewer(renderer=self.renderer)
-        try:
-            # Use the web renderer
-            viewer.set_scene(self.sim._scene)
-            viewer.scene = self.sim
-        except Exception as e:
-            print(
-                "Not using web render, set scene error, try to use the original sapien render. Error:",
-                e,
-            )
+        if self._web_visualizer_bound:
+            try:
+                # Use the web renderer
+                viewer.set_scene(self.sim._scene)
+                viewer.scene = self.sim
+            except Exception as e:
+                print(
+                    "Web visualizer not fully initialized. Using standard viewer. Error:",
+                    e,
+                )
+                viewer.set_scene(self.sim)
+        else:
+            # Standard viewer setup when web visualizer is not available
             viewer.set_scene(self.sim)
 
         # The rotation of the free camera is represented as [roll(x), pitch(-y), yaw(-z)]
