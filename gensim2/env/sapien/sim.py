@@ -17,13 +17,17 @@ from gensim2.env.sapien.utils import get_entity_by_name
 from gensim2.paths import *
 from .constructor import get_engine_and_renderer, add_default_scene_light
 
+_web_visualizer_available = False
 try:
     from sim_web_visualizer import (
         create_sapien_visualizer,
         bind_visualizer_to_sapien_scene,
     )
+    _web_visualizer_available = True
 except ImportError:
     print("Cannot import sim_web_visualizer. Please install it first.")
+    create_sapien_visualizer = None
+    bind_visualizer_to_sapien_scene = None
 
 # In Sapien, Articulation is a set of joints and links (behave like a rigid body), i.e., the robot and objects. Actor is an alias of rigid body.
 
@@ -50,7 +54,7 @@ class SapienSim(object):
         headless = headless or (not use_visual_obs)
         icecream.ic(use_gui, use_visual_obs, no_rgb, headless)
 
-        if web_viewer:
+        if web_viewer and _web_visualizer_available:
             create_sapien_visualizer(
                 port=6000, host="localhost", keep_default_viewer=False
             )
@@ -105,12 +109,13 @@ class SapienSim(object):
         scene_config = sapien.SceneConfig()
         self.sim = self.engine.create_scene(config=scene_config)
         self.sim.set_timestep(1.0 / self._sim_freq)
-        try:
-            self.sim = bind_visualizer_to_sapien_scene(
-                self.sim, self.engine, self.renderer
-            )
-        except Exception as e:
-            print("Bind web visualizer error!", e)
+        if _web_visualizer_available and bind_visualizer_to_sapien_scene is not None:
+            try:
+                self.sim = bind_visualizer_to_sapien_scene(
+                    self.sim, self.engine, self.renderer
+                )
+            except Exception as e:
+                print("Bind web visualizer error!", e)
 
         # If headless is enabled, setup scene lighting for rendering
         if (not self.headless) and (self.cam_type != "real"):
