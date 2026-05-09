@@ -10,7 +10,7 @@ pillow
 meshcat
 openai==0.28
 ipdb
-open3d
+open3d==0.16.0
 einops
 dm-reverb
 meshcat
@@ -58,3 +58,4 @@ webcolors
 ftfy
 imageio[ffmpeg]
 gymnasium
+trimesh
